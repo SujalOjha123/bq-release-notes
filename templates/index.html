@@ -1,0 +1,278 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes</title>
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --muted: #cbd5e1;
+            --accent: #3b82f6;
+            --border: #334155;
+        }
+
+        body.light {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #475569;
+            --accent: #2563eb;
+            --border: #cbd5e1;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 980px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 38px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        button, .csv-link {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            background: var(--accent);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .csv-link {
+            background: #10b981;
+        }
+
+        .copy-btn {
+            background: #8b5cf6;
+        }
+
+        .tweet-btn {
+            background: #0ea5e9;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 18px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+        }
+
+        .date {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .summary {
+            line-height: 1.6;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .spinner {
+            display: none;
+            width: 26px;
+            height: 26px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toggle-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        a {
+            color: #93c5fd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header">
+            <h1>BigQuery Release Notes</h1>
+
+            <label class="toggle-box">
+                <input type="checkbox" id="themeToggle">
+                Light mode
+            </label>
+        </div>
+
+        <div class="controls">
+            <button id="refreshBtn">Refresh Feed</button>
+            <a class="csv-link" href="/export/csv">Export to CSV</a>
+            <div class="spinner" id="spinner"></div>
+        </div>
+
+        <div id="notes"></div>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        const notesDiv = document.getElementById("notes");
+        const spinner = document.getElementById("spinner");
+        const refreshBtn = document.getElementById("refreshBtn");
+        const themeToggle = document.getElementById("themeToggle");
+        const toast = document.getElementById("toast");
+
+        themeToggle.addEventListener("change", function () {
+            document.body.classList.toggle("light", themeToggle.checked);
+        });
+
+        refreshBtn.addEventListener("click", refreshNotes);
+
+        function showToast() {
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 1800);
+        }
+
+        function stripHtml(html) {
+            const temp = document.createElement("div");
+            temp.innerHTML = html;
+            return temp.textContent || temp.innerText || "";
+        }
+
+        async function copyToClipboard(note) {
+            const cleanSummary = stripHtml(note.summary);
+            const text = `${note.title}\n\n${cleanSummary}\n\n${note.link}`;
+
+            await navigator.clipboard.writeText(text);
+            showToast();
+        }
+
+        function tweetNote(note) {
+            const tweetUrl = `/tweet?text=${encodeURIComponent(note.title)}&url=${encodeURIComponent(note.link)}`;
+            window.open(tweetUrl, "_blank");
+        }
+
+        function renderNotes(notes) {
+            notesDiv.innerHTML = "";
+
+            notes.forEach(note => {
+                const card = document.createElement("div");
+                card.className = "card";
+
+                const title = document.createElement("h2");
+                title.textContent = note.title;
+
+                const date = document.createElement("p");
+                date.className = "date";
+                date.textContent = "Published: " + note.published;
+
+                const summary = document.createElement("div");
+                summary.className = "summary";
+                summary.innerHTML = note.summary;
+
+                const buttons = document.createElement("div");
+                buttons.className = "buttons";
+
+                const tweetBtn = document.createElement("button");
+                tweetBtn.className = "tweet-btn";
+                tweetBtn.textContent = "Tweet this update";
+                tweetBtn.addEventListener("click", () => tweetNote(note));
+
+                const copyBtn = document.createElement("button");
+                copyBtn.className = "copy-btn";
+                copyBtn.textContent = "Copy to Clipboard";
+                copyBtn.addEventListener("click", () => copyToClipboard(note));
+
+                buttons.appendChild(tweetBtn);
+                buttons.appendChild(copyBtn);
+
+                card.appendChild(title);
+                card.appendChild(date);
+                card.appendChild(summary);
+                card.appendChild(buttons);
+
+                notesDiv.appendChild(card);
+            });
+        }
+
+        async function refreshNotes() {
+            spinner.style.display = "inline-block";
+
+            const response = await fetch("/api/notes");
+            const data = await response.json();
+
+            renderNotes(data);
+
+            spinner.style.display = "none";
+        }
+
+        refreshNotes();
+    </script>
+</body>
+</html>
