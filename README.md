@@ -61,3 +61,7 @@ http://127.0.0.1:5000
 ## Notes
 
 This project was created as part of the Day 2 Antigravity CLI practice task.
+
+## Live Demo
+
+You can view the deployed app here: https://bq-release-notes-yryw.onrender.com
