@@ -1,0 +1,13 @@
+Set-Content -Path LICENSE -Encoding UTF8 -Value @'
+All Rights Reserved
+
+Copyright (c) 2026 Sujal Ojha
+
+This project and its source code are the intellectual property of the author.
+
+You may view this repository for educational and evaluation purposes only.
+
+You may not copy, modify, distribute, publish, sublicense, sell, or use this code in any other project without explicit written permission from the author.
+
+Unauthorized use, reproduction, or distribution of this project or any portion of it is strictly prohibited.
+'@
